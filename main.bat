@@ -42,15 +42,28 @@ for /f "tokens=1,2 delims==" %%A in ('echo %config%') do (
     if "%%A"=="ssh_key" set "SSH_KEY=%%B"
     if "%%A"=="server_address" set "SERVER_ADDRESS=%%B"
     if "%%A"=="code_dir" set "CODE_DIR=%%B"
+    if "%%A"=="ssh_username" set "SSH_USERNAME=%%B"
 )
 
-:: Check if project type and code directory are set
+:: Check if project type, code directory, and SSH details are set
 if "%PROJECT_TYPE%"=="" (
     echo "Error: Project type not specified in the configuration for %PROJECT_NAME%"
     exit /b 1
 )
 if "%CODE_DIR%"=="" (
     echo "Error: Code directory not specified in the configuration for %PROJECT_NAME%"
+    exit /b 1
+)
+if "%SSH_KEY%"=="" (
+    echo "Error: SSH key not specified in the configuration for %PROJECT_NAME%"
+    exit /b 1
+)
+if "%SERVER_ADDRESS%"=="" (
+    echo "Error: Server address not specified in the configuration for %PROJECT_NAME%"
+    exit /b 1
+)
+if "%SSH_USERNAME%"=="" (
+    echo "Error: SSH username not specified in the configuration for %PROJECT_NAME%"
     exit /b 1
 )
 
@@ -97,5 +110,5 @@ if not exist "%DEPLOYER_SCRIPT_PATH%" (
     exit /b 1
 )
 
-:: Call the specific deployment script from the code directory
-call "%DEPLOYER_SCRIPT_PATH%" "%CONFIG_PATH%"
+:: Call the specific deployment script from the code directory, passing necessary arguments with flags
+call "%DEPLOYER_SCRIPT_PATH%" -pn "%PROJECT_NAME%" -sa "%SERVER_ADDRESS%" -sk "%SSH_KEY%" -su "%SSH_USERNAME%"
