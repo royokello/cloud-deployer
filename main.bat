@@ -69,8 +69,8 @@ if "%SSH_USERNAME%"=="" (
 
 :: Hardcoded URLs for each project type
 if "%PROJECT_TYPE%"=="phoenix" (
-    set DEPLOYER_SCRIPT_URL=https://github.com/your-phoenix-deployer-repo/phoenix_deployer.bat
-    set DEPLOYER_SCRIPT=phoenix_deployer.bat
+    set DEPLOYER_SCRIPT_URL=https://raw.githubusercontent.com/royokello/phoenix-server-deploy/main/phoenix_server_deploy.bat
+    set DEPLOYER_SCRIPT=phoenix_server_deploy.bat
 ) else if "%PROJECT_TYPE%"=="rust" (
     set DEPLOYER_SCRIPT_URL=https://github.com/your-rust-deployer-repo/rust_deployer.bat
     set DEPLOYER_SCRIPT=rust_deployer.bat
