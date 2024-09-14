@@ -43,6 +43,7 @@ for /f "tokens=1,2 delims==" %%A in ('echo %config%') do (
     if "%%A"=="server_address" set "SERVER_ADDRESS=%%B"
     if "%%A"=="code_dir" set "CODE_DIR=%%B"
     if "%%A"=="ssh_username" set "SSH_USERNAME=%%B"
+    if "%%A"=="command" set "COMMAND=%%B"
 )
 
 :: Check if project type, code directory, and SSH details are set
@@ -72,7 +73,7 @@ if "%PROJECT_TYPE%"=="phoenix" (
     set DEPLOYER_SCRIPT_URL=https://raw.githubusercontent.com/royokello/phoenix-server-deploy/main/phoenix_server_deploy.bat
     set DEPLOYER_SCRIPT=phoenix_server_deploy.bat
 ) else if "%PROJECT_TYPE%"=="rust" (
-    set DEPLOYER_SCRIPT_URL=https://github.com/your-rust-deployer-repo/rust_deployer.bat
+    set DEPLOYER_SCRIPT_URL=https://raw.githubusercontent.com/royokello/rust-deployer/main/rust_deployer.bat
     set DEPLOYER_SCRIPT=rust_deployer.bat
 ) else (
     echo "Error: Unsupported project type '%PROJECT_TYPE%'."
@@ -110,5 +111,9 @@ if not exist "%DEPLOYER_SCRIPT_PATH%" (
     exit /b 1
 )
 
-:: Call the specific deployment script from the code directory, passing necessary arguments with flags
-call "%DEPLOYER_SCRIPT_PATH%" -pn "%PROJECT_NAME%" -sa "%SERVER_ADDRESS%" -sk "%SSH_KEY%" -su "%SSH_USERNAME%"
+:: Conditionally call the specific deployment script with or without the command argument
+if "%PROJECT_TYPE%"=="rust" (
+    call "%DEPLOYER_SCRIPT_PATH%" -pn "%PROJECT_NAME%" -sa "%SERVER_ADDRESS%" -sk "%SSH_KEY%" -su "%SSH_USERNAME%" -cmd "%COMMAND%"
+) else (
+    call "%DEPLOYER_SCRIPT_PATH%" -pn "%PROJECT_NAME%" -sa "%SERVER_ADDRESS%" -sk "%SSH_KEY%" -su "%SSH_USERNAME%"
+)
