@@ -155,8 +155,8 @@ echo "DB=!DB!" | call :Log
 
 :: Define Deployer Script URLs (Hosted on GitHub)
 if /I "!PROJECT_TYPE!"=="phoenix" (
-    set "DEPLOYER_SCRIPT_URL=https://raw.githubusercontent.com/royokello/phoenix-server-deploy/main/phoenix_server_deploy.bat"
-    set "DEPLOYER_SCRIPT=phoenix_server_deploy.bat"
+    set "DEPLOYER_SCRIPT_URL=https://raw.githubusercontent.com/royokello/phoenix-deployer/main/phoenix_deployer.bat"
+    set "DEPLOYER_SCRIPT=phoenix_deployer.bat"
 ) else if /I "!PROJECT_TYPE!"=="rust" (
     set "DEPLOYER_SCRIPT_URL=https://raw.githubusercontent.com/royokello/rust-deployer/main/rust_deployer.bat"
     set "DEPLOYER_SCRIPT=rust_deployer.bat"
