@@ -102,7 +102,12 @@ set "OUTPUT_PATH=%TEMP_DIR%\config_vars.txt"
 
 :: Get config loader from GitHub
 set "CONFIG_LOADER_URL=https://raw.githubusercontent.com/royokello/cloud-deployer/main/config_reader.ps1"
+echo "Downloading config loader from %CONFIG_LOADER_URL%..."
+
 set "CONFIG_LOADER_PATH=%TEMP_DIR%\config_reader.ps1"
+
+:: Download the config loader script
+powershell -NoProfile -Command "Invoke-WebRequest -Uri '%CONFIG_LOADER_URL%' -OutFile '%CONFIG_LOADER_PATH%'"
 
 :: Call the PowerShell script
 powershell -NoProfile -ExecutionPolicy Bypass -File "%CONFIG_LOADER_PATH%" -ConfigPath "%CONFIG_PATH%" -ProjectName "%PROJECT_NAME%" -OutputPath "%OUTPUT_PATH%"
