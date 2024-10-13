@@ -1,6 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+echo Cloud Deployer v0.1.0
+echo Author: Roy Okello, roy@stelar.xyz
+
 :: Read input arguments
 set "PROJECT_NAME="
 set "DEPLOY_DIR="
@@ -37,121 +40,145 @@ if "%DEPLOY_DIR%"=="" (
     exit /b 1
 )
 
-:: Define paths
-set "CONFIG_PATH=%DEPLOY_DIR%\config.json"
-set "LOG_DIR=%DEPLOY_DIR%\logs"
-set "LOG_FILE=%LOG_DIR%\deployment_%DATE:~-4,4%-%DATE:~4,2%-%DATE:~7,2%.log"
+echo Arguments parsed: project name: %PROJECT_NAME%, deployment directory: %DEPLOY_DIR%
 
+:: Define paths
+set "DATE=%date%"
+set "TIME=%time%"
+
+set "LOG_DIR=%DEPLOY_DIR%\logs"
 :: Create logs directory if it doesn't exist
 if not exist "%LOG_DIR%" (
     mkdir "%LOG_DIR%"
     if errorlevel 1 (
-        echo "Error: Failed to create logs directory at '%LOG_DIR%'." | call :Log
-        echo "Error: Failed to create logs directory at '%LOG_DIR%'."
+        echo Error: Failed to create logs directory at '%LOG_DIR%'.
         exit /b 1
+    ) else (
+        echo Logs directory created at '%LOG_DIR%'.
     )
+) else (
+    echo Logs directory exists at '%LOG_DIR%'.
 )
 
-:: Define log function with timestamp
-:Log
-echo [%date% %time%] %~1 >> "%LOG_FILE%"
-goto :eof
+set "LOG_FILE=%LOG_DIR%\%DATE:~-4,4%-%DATE:~4,2%-%DATE:~7,2%_%TIME:~0,2%-%TIME:~3,2%-%TIME:~6,2%.log"
+echo Log file: %LOG_FILE%
 
-:: Log start of deployment
-echo "Starting deployment for project '%PROJECT_NAME%' using config '%CONFIG_PATH%'." | call :Log
+set "CONFIG_PATH=%DEPLOY_DIR%\config.json"
 
 :: Check if config.json exists
 if not exist "%CONFIG_PATH%" (
-    echo "Error: Configuration file '%CONFIG_PATH%' not found." | call :Log
-    echo "Error: Configuration file '%CONFIG_PATH%' not found."
+    call :Log "Configuration file not found in %DEPLOY_DIR%."
+    exit /b 1
+) else (
+    call :Log "Configuration file found in %DEPLOY_DIR%."
+)
+
+:: Log start of deployment
+call :Log "Starting deployment for project %PROJECT_NAME%"
+
+:: ---------------------------
+:: Read and Parse JSON Configuration
+:: ---------------------------
+:: This section uses PowerShell to parse the JSON file and set environment variables
+:: based on the project-specific configuration.
+
+set TEMP_DIR=%DEPLOY_DIR%\temp
+
+:: Create temp directory if it doesn't exist
+if not exist "%TEMP_DIR%" (
+    mkdir "%TEMP_DIR%"
+    if errorlevel 1 (
+        echo Error: Failed to create temp directory at '%TEMP_DIR%'.
+        exit /b 1
+    ) else (
+        echo Temp directory created at '%TEMP_DIR%'.
+    )
+) else (
+    echo Temp directory exists at '%TEMP_DIR%'.
+)
+
+
+set "OUTPUT_PATH=%TEMP_DIR%\config_vars.txt"
+
+:: Get config loader from GitHub
+set "CONFIG_LOADER_URL=https://raw.githubusercontent.com/royokello/cloud-deployer/main/config_reader.ps1"
+set "CONFIG_LOADER_PATH=%TEMP_DIR%\config_reader.ps1"
+
+:: Call the PowerShell script
+powershell -NoProfile -ExecutionPolicy Bypass -File "%CONFIG_LOADER_PATH%" -ConfigPath "%CONFIG_PATH%" -ProjectName "%PROJECT_NAME%" -OutputPath "%OUTPUT_PATH%"
+
+rem Check if the PowerShell script executed successfully
+if errorlevel 1 (
+    echo Error occurred while reading configuration.
     exit /b 1
 )
 
-:: Read JSON config file using PowerShell and extract properties
-for /f "usebackq tokens=*" %%i in (`powershell -NoProfile -Command ^
-    "(Get-Content -Path '%CONFIG_PATH%' | ConvertFrom-Json).%PROJECT_NAME%"`) do set "config=%%i"
-
-:: Check if config was retrieved
-if "%config%"=="" (
-    echo "Error: No configuration found for project '%PROJECT_NAME%' in '%CONFIG_PATH%'." | call :Log
-    echo "Error: No configuration found for project '%PROJECT_NAME%' in '%CONFIG_PATH%'."
-    exit /b 1
+rem Read the variables from the output file
+for /f "usebackq tokens=1* delims==" %%A in ("%OUTPUT_PATH%") do (
+    set "%%A=%%B"
 )
 
-:: Extract variables from the JSON config using PowerShell
-for /f "usebackq tokens=1,2 delims=:" %%A in (`powershell -NoProfile -Command ^
-    "$config = Get-Content -Path '%CONFIG_PATH%' | ConvertFrom-Json; ^
-    $props = $config.%PROJECT_NAME% | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name; ^
-    foreach ($prop in $props) { Write-Output \"$prop:$(($config.%PROJECT_NAME%.$prop) -replace '\"','')\" }"`) do (
-    set "key=%%A"
-    set "value=%%B"
-    :: Remove any leading/trailing spaces
-    set "key=!key: =!"
-    set "value=!value: =!"
-    :: Assign variables based on keys
-    if /I "!key!"=="type" set "PROJECT_TYPE=!value!"
-    if /I "!key!"=="ssh_key" set "SSH_KEY=!value!"
-    if /I "!key!"=="server_address" set "SERVER_ADDRESS=!value!"
-    if /I "!key!"=="code_dir" set "CODE_DIR=!value!"
-    if /I "!key!"=="ssh_username" set "SSH_USERNAME=!value!"
-    if /I "!key!"=="command" set "COMMAND=!value!"
-    if /I "!key!"=="db" set "DB=!value!"
-)
+rem Delete the output file
+del "%OUTPUT_PATH%"
 
-:: Check if required variables are set
-if "!PROJECT_TYPE!"=="" (
-    echo "Error: Project type not specified in the configuration for '%PROJECT_NAME%'." | call :Log
-    echo "Error: Project type not specified in the configuration for '%PROJECT_NAME%'."
-    exit /b 1
-)
-if "!CODE_DIR!"=="" (
-    echo "Error: Code directory not specified in the configuration for '%PROJECT_NAME%'." | call :Log
-    echo "Error: Code directory not specified in the configuration for '%PROJECT_NAME%'."
-    exit /b 1
-)
-if "!SSH_KEY!"=="" (
-    echo "Error: SSH key not specified in the configuration for '%PROJECT_NAME%'." | call :Log
-    echo "Error: SSH key not specified in the configuration for '%PROJECT_NAME%'."
-    exit /b 1
-)
-if "!SERVER_ADDRESS!"=="" (
-    echo "Error: Server address not specified in the configuration for '%PROJECT_NAME%'." | call :Log
-    echo "Error: Server address not specified in the configuration for '%PROJECT_NAME%'."
-    exit /b 1
-)
-if "!SSH_USERNAME!"=="" (
-    echo "Error: SSH username not specified in the configuration for '%PROJECT_NAME%'." | call :Log
-    echo "Error: SSH username not specified in the configuration for '%PROJECT_NAME%'."
-    exit /b 1
-)
-if "!COMMAND!"=="" (
-    echo "Error: Command not specified in the configuration for '%PROJECT_NAME%'." | call :Log
-    echo "Error: Command not specified in the configuration for '%PROJECT_NAME%'."
+rem Output the variables to verify
+echo project_type=%project_type%
+echo ssh_key=%ssh_key%
+echo ssh_username=%ssh_username%
+echo server_address=%server_address%
+echo code_dir=%code_dir%
+echo command=%command%
+echo db=%db%
+
+if errorlevel 1 (
+    call :Log "Error parsing configuration file."
     exit /b 1
 )
 
-:: Validate 'db' parameter if it's defined
+call :Log "Configuration variables set."
+
+:: ---------------------------
+:: Validate Configuration Variables
+:: ---------------------------
+:: This section checks that all required variables are set and valid.
+call :Log "Validating configuration variables..."
+
+:: Define required variables (in lowercase)
+set "REQUIRED_VARS=project_type code_dir ssh_key server_address ssh_username command"
+
+:: Iterate over each required variable and check if it's set
+for %%V in (%REQUIRED_VARS%) do (
+    if "!%%V!"=="" (
+        call :Log "ERROR: %%V is not specified in the configuration for project '%PROJECT_NAME%'."
+        exit /b 1
+    )
+)
+
+:: Validate 'DB' parameter if it's defined
 if defined DB (
     :: Ensure 'DB' is either 'true' or 'false' (case-insensitive)
     if /I "!DB!" NEQ "true" if /I "!DB!" NEQ "false" (
-        echo "Error: 'db' parameter must be a boolean (true or false) in the configuration for '%PROJECT_NAME%'." | call :Log
-        echo "Error: 'db' parameter must be a boolean (true or false) in the configuration for '%PROJECT_NAME%'."
+        call :Log "ERROR: 'DB' parameter must be a boolean ('true' or 'false') in the configuration for project '%PROJECT_NAME%'."
         exit /b 1
     )
 ) else (
-    :: Default to false if 'db' is not defined
+    :: Default to false if 'DB' is not defined
     set "DB=false"
+    call :Log "'DB' parameter not defined. Defaulting to 'false'."
 )
 
-:: Log extracted variables
-echo "Extracted variables:" | call :Log
-echo "PROJECT_TYPE=!PROJECT_TYPE!" | call :Log
-echo "SSH_KEY=!SSH_KEY!" | call :Log
-echo "SERVER_ADDRESS=!SERVER_ADDRESS!" | call :Log
-echo "CODE_DIR=!CODE_DIR!" | call :Log
-echo "SSH_USERNAME=!SSH_USERNAME!" | call :Log
-echo "COMMAND=!COMMAND!" | call :Log
-echo "DB=!DB!" | call :Log
+:: ---------------------------
+:: Confirmation of Loaded Configurations
+:: ---------------------------
+call :Log "Configuration loaded successfully for project '%PROJECT_NAME%'."
+call :Log "Configuration Details:"
+call :Log "  project_type    = !project_type!"
+call :Log "  code_dir        = !code_dir!"
+call :Log "  ssh_key         = !ssh_key!"
+call :Log "  server_address  = !server_address!"
+call :Log "  ssh_username    = !ssh_username!"
+call :Log "  command         = !command!"
+call :Log "  DB              = !DB!"
 
 :: Define Deployer Script URLs (Hosted on GitHub)
 if /I "!PROJECT_TYPE!"=="phoenix" (
@@ -252,3 +279,11 @@ echo "Deployment completed successfully for project '%PROJECT_NAME%'." | call :L
 echo "Deployment completed successfully for project '%PROJECT_NAME%'."
 endlocal
 pause
+
+:: Define the log function at the end
+goto :eof
+
+:Log
+echo [%date% %time%] %~1 >> "%LOG_FILE%"
+echo [%date% %time%] %~1
+goto :eof
