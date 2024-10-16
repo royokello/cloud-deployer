@@ -28,8 +28,8 @@ try {
             $value = ''
         }
 
-        # Escape special characters for batch script
-        $escapedValue = $value -replace '([%\^\&\<\>\|])', '^$1' -replace '"', '""'
+        # Specifically handle escaping of special characters for batch script
+        $escapedValue = $value -replace '([%\^\&\<\>\|])', '^$1' -replace '&&', '^&^&'
 
         # Append the variable assignment to the output content
         $outputContent += "$key=$escapedValue`n"
