@@ -28,11 +28,13 @@ try {
             $value = ''
         }
 
-        # Specifically handle escaping of special characters for batch script
-        $escapedValue = $value -replace '([%\^\&\<\>\|])', '^$1' -replace '&&', '^&^&'
+        # Check if the key is 'command' and handle special characters
+        if ($key -eq 'command') {
+            $value = "`"$value`""  # Wrap command in double quotes to escape special characters
+        }
 
-        # Append the variable assignment to the output content
-        $outputContent += "$key=$escapedValue`n"
+        # Append the variable assignment to the output content as-is
+        $outputContent += "$key=$value`n"
     }
 
     # Write the output content to the specified output file
