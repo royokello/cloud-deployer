@@ -1,5 +1,5 @@
 # cloud-deployer
-A dynamic Windows batch script for automating app deployments to cloud servers. Supports multiple project types by downloading and executing project-specific deployer scripts from separate repositories, using a flexible configuration file for easy management of server details, SSH keys, and deployment paths.
+A dynamic Python script for automating app deployments to cloud servers. Supports multiple project types by downloading and executing project-specific deployer scripts from separate repositories, using a flexible configuration file for easy management of server details, SSH keys, and deployment paths.
 
 ## Features
 
@@ -31,12 +31,12 @@ To use the cloud-deployer, follow these steps:
 
 2. Open a command prompt or terminal.
 
-3. Navigate to the directory containing the `main.bat` script.
+3. Navigate to the directory containing the `main.py` script.
 
 4. Run the script with the following command structure:
 
    ```
-   main.bat -pn <PROJECT_NAME> -dd <DEPLOYMENT_DIRECTORY>
+   python main.py -pn <PROJECT_NAME> -cd <CLOUD_DIRECTORY>
    ```
 
    Where:
@@ -45,7 +45,7 @@ To use the cloud-deployer, follow these steps:
 
    Example:
    ```
-   main.bat -pn my_phoenix_app -dd C:\deployments\my_phoenix_app
+   python main.py -pn my_phoenix_app -cd C:\deployments\my_phoenix_app
    ```
 
 5. The script will automatically:
